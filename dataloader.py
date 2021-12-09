@@ -1,6 +1,8 @@
 import torch
 import torchvision.transforms as transforms
 import torchvision.datasets as dsets
+import glob
+import csv
 
 # Directory containing the data.
 root = 'data/'
@@ -49,6 +51,16 @@ def get_data(dataset, batch_size):
 
         dataset = dsets.ImageFolder(root=root+'celeba/', transform=transform)
 
+    elif dataset == 'argoverse':
+        data_list = glob.glob(root+'argoverse/argoverse/raw/*.csv')
+        data_num = len(list)
+        dat = open(data_list[0])
+        reader = csv.reader(dat)
+        lines = list(reader)
+
+
+
+        dataset = dsets.ImageFolder(root=root+'celeba/', transform=transform)
     # Create dataloader.
     dataloader = torch.utils.data.DataLoader(dataset, 
                                             batch_size=batch_size, 

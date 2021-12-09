@@ -21,6 +21,8 @@ elif(params['dataset'] == 'CelebA'):
     from models.celeba_model import Generator, Discriminator, DHead, QHead
 elif(params['dataset'] == 'FashionMNIST'):
     from models.mnist_model import Generator, Discriminator, DHead, QHead
+elif(params['dataset'] == 'argoverse'):
+    from models.argoverse_model import Generator, Discriminator, DHead, QHead
 
 # Set random seed for reproducibility.
 seed = 1123
@@ -60,6 +62,11 @@ elif(params['dataset'] == 'FashionMNIST'):
     params['num_dis_c'] = 1
     params['dis_c_dim'] = 10
     params['num_con_c'] = 2
+elif(params['dataset'] == 'argoverse'):
+    params['num_z'] = 62
+    params['num_dis_c'] = 5
+    params['dis_c_dim'] = 10
+    params['num_con_c'] = 3
 
 # Plot the training images.
 sample_batch = next(iter(dataloader))
@@ -143,7 +150,7 @@ for epoch in range(params['num_epochs']):
         # Updating discriminator and DHead
         optimD.zero_grad()
         # Real data
-        label = torch.full((b_size, ), real_label, device=device)
+        label = torch.full((b_size, ), real_label, device=device).to(torch.float32)
         output1 = discriminator(real_data)
         probs_real = netD(output1).view(-1)
         loss_real = criterionD(probs_real, label)
