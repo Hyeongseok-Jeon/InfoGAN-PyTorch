@@ -7,6 +7,8 @@ import pandas as pd
 import os
 import numpy as np
 import data.argoverse.argoverse.cord_conv as cord_conv
+import matplotlib.pyplot as plt
+import time
 # Directory containing the data.
 root = 'data/'
 
@@ -54,61 +56,78 @@ def get_data(dataset, batch_size):
         dataset = dsets.ImageFolder(root=root+'celeba/', transform=transform)
 
     elif dataset == 'argoverse':
+        traj_num = 0
+        data_placeholder = np.empty(shape=(2000000, 20, 2))
+        maneuver = np.empty(shape=2000000)
         os.makedirs(root+'argoverse/argoverse/preprocess', exist_ok=True)
         data_list = glob.glob(root+'argoverse/argoverse/raw/*.csv')
         data_num = len(data_list)
-        veh_max = 0
         for i in range(data_num):
+            ID_cand = []
             data_tmp = pd.read_csv(data_list[i])
-            veh_num = len(data_tmp.TRACK_ID[~data_tmp.TRACK_ID.duplicated()])
+            ts = list(data_tmp.TIMESTAMP[~data_tmp.TIMESTAMP.duplicated()])[20:40]
+            ID_cand.append(list(data_tmp.TRACK_ID[data_tmp.OBJECT_TYPE == 'AGENT'])[0])
+            ID_cand.append(list(data_tmp.TRACK_ID[data_tmp.OBJECT_TYPE == 'AV'])[0])
+            for j in range(len(ID_cand)):
+                ID = ID_cand[j]
+                if len(set(ts) & set(list(data_tmp.TIMESTAMP[data_tmp.TRACK_ID == ID]))) == 20:
+                    X = list(data_tmp.X[data_tmp.TRACK_ID == ID])
+                    Y = list(data_tmp.Y[data_tmp.TRACK_ID == ID])
+                    if np.sqrt((X[-1]-X[0])**2 + (Y[-1]-Y[0])**2) > 5:
+                        t = list(data_tmp.TIMESTAMP[data_tmp.TRACK_ID == ID])
+                        traj_idx = [i for i in range(len(t)) if t[i] in ts]
+                        traj_tmp = np.expand_dims(np.asarray([X[traj_idx[0]:traj_idx[-1]+1], Y[traj_idx[0]:traj_idx[-1]+1]]).T, axis=0)
+                        traj_tmp = cord_conv.preprocess(traj_tmp)
+                        traj_tmp = cord_conv.preprocess_dir(traj_tmp)[0]
 
-1
-            if veh_num > veh_max:
-                veh_max = veh_num
-                index = i
+                        lat_pos_final = traj_tmp[-1, 1]
+                        heading_final = np.rad2deg(np.arctan2(traj_tmp[-1, 1]-traj_tmp[-5, 1], traj_tmp[-1, 0]-traj_tmp[-5, 0]))
 
-        data_placeholder = np.empty(shape=(data_num, veh_max, 20, 2))
-        data_placeholder[:] = float('nan')
-        for i in range(data_num):
-            data_instance = np.empty(shape=(veh_max, 50, 2))
-            data_instance[:] = float('nan')
+                        if heading_final > 10:
+                            maneuver_cat = 0
+                            plt.subplot(5,1,1)
+                            plt.plot(traj_tmp[:,0], traj_tmp[:,1])
+                            plt.xlim([0, 50])
+                            plt.ylim([-5, 5])
+                        elif heading_final > -10:
+                            if lat_pos_final > 1:
+                                plt.subplot(5, 1, 2)
+                                plt.plot(traj_tmp[:, 0], traj_tmp[:, 1])
+                                plt.xlim([0, 50])
+                                plt.ylim([-5, 5])
+                                maneuver_cat = 1
+                            elif lat_pos_final > -1:
+                                plt.subplot(5, 1, 3)
+                                plt.plot(traj_tmp[:, 0], traj_tmp[:, 1])
+                                plt.xlim([0, 50])
+                                plt.ylim([-5, 5])
+                                maneuver_cat = 2
+                            else:
+                                plt.subplot(5, 1, 4)
+                                plt.plot(traj_tmp[:, 0], traj_tmp[:, 1])
+                                plt.xlim([0, 50])
+                                plt.ylim([-5, 5])
+                                maneuver_cat = 3
+                        else:
+                            plt.subplot(5,1,5)
+                            plt.plot(traj_tmp[:,0], traj_tmp[:,1])
+                            plt.xlim([0, 50])
+                            plt.ylim([-5, 5])
+                            maneuver_cat = 4
 
-            data_single = pd.read_csv(data_list[i])
-            time_steps = data_single.TIMESTAMP[~data_single.TIMESTAMP.duplicated()]
-            id_list = data_single.TRACK_ID[~data_single.TRACK_ID.duplicated()]
-            ego_id = data_single.TRACK_ID[data_single.OBJECT_TYPE == 'AV'].tolist()[0]
-            ego_idx = data_single.TIMESTAMP.isin(time_steps) * data_single.TRACK_ID == ego_id
-            ego_traj = np.transpose(np.stack([data_single.X[ego_idx].to_numpy(), data_single.Y[ego_idx].to_numpy()]))
-            ego_time = data_single.TIMESTAMP[ego_idx].tolist()
-            for j in range(len(ego_time)):
-                idx = time_steps.tolist().index(ego_time[j])
-                data_instance[0, idx, :] = ego_traj[j,:]
-            target_id = data_single.TRACK_ID[data_single.OBJECT_TYPE == 'AGENT'].tolist()[0]
-            target_idx = data_single.TIMESTAMP.isin(time_steps) * data_single.TRACK_ID == target_id
-            target_traj = np.transpose(np.stack([data_single.X[target_idx].to_numpy(), data_single.Y[target_idx].to_numpy()]))
-            target_time = data_single.TIMESTAMP[target_idx].tolist()
-            for j in range(len(target_time)):
-                idx = time_steps.tolist().index(target_time[j])
-                data_instance[1, idx, :] = target_traj[j, :]
+                        data_placeholder[traj_num] = traj_tmp
+                        maneuver[traj_num] = maneuver_cat
+                        traj_num = traj_num + 1
 
-            sur_ids = id_list[~(id_list == ego_id) & ~(id_list == target_id)].tolist()
-            for num in range(len(sur_ids)):
-                sur_id = sur_ids[num]
-                sur_idx = data_single.TIMESTAMP.isin(time_steps) * data_single.TRACK_ID == sur_id
-                sur_traj = np.transpose(np.stack([data_single.X[sur_idx].to_numpy(), data_single.Y[sur_idx].to_numpy()]))
-                sur_time = data_single.TIMESTAMP[sur_idx].tolist()
-                for j in range(len(sur_time)):
-                    idx = time_steps.tolist().index(sur_time[j])
-                    data_instance[2+num, idx, :] = sur_traj[j, :]
-
-            data_transition = cord_conv.preprocess(data_instance)
-            data_rotation = cord_conv.preprocess_dir(data_transition)
-            data_converted = data_rotation[data_rotation[:,19,0]==0]
-            data_placeholder[i,:len(data_converted),:,:] = data_converted[:,:20,:]
-
+        data_placeholder = torch.Tensor(data_placeholder[:traj_num])
+        maneuver = torch.Tensor(maneuver[:traj_num])
+        training_data = (data_placeholder, maneuver)
+        torch.save(root+'argoverse/argoverse/preprocess/training.pt', )
     # Create dataloader.
     dataloader = torch.utils.data.DataLoader(dataset,
                                             batch_size=batch_size,
                                             shuffle=True)
 
     return dataloader
+
+def get_maneuver(traj):
