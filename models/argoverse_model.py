@@ -3,9 +3,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 from fractions import gcd
 from torch import Tensor
+
 """
 Architecture based on InfoGAN paper.
 """
+
 
 class Generator(nn.Module):
     def __init__(self):
@@ -15,72 +17,66 @@ class Generator(nn.Module):
 
         n_actor = 128
 
-        pred = []
-        for i in range(1):
-            pred.append(
-                nn.Sequential(
-                    LinearRes(n_actor, n_actor, norm=norm, ng=ng),
-                    nn.Linear(n_actor, 2 * 20),
-                )
-            )
-        self.pred = nn.ModuleList(pred)
+        self.linear_res = LinearRes(n_actor, n_actor, norm=norm, ng=ng)
+        self.linear = nn.Linear(n_actor, 2 * 20)
 
-        self.att_dest = AttDest(n_actor)
-        self.cls = nn.Sequential(
-            LinearRes(n_actor, n_actor, norm=norm, ng=ng), nn.Linear(n_actor, 1)
-        )
 
     def forward(self, x):
-        x = F.relu(self.bn1(self.tconv1(x)))
-        x = F.relu(self.bn2(self.tconv2(x)))
-        x = F.relu(self.bn3(self.tconv3(x)))
+        x = self.linear_res(x)
+        x = self.linear(x)
+        traj = x.view(-1, 20, 2)
+        return traj
 
-        img = torch.sigmoid(self.tconv4(x))
-
-        return img
 
 class Discriminator(nn.Module):
     def __init__(self):
         super().__init__()
+        self.Conv1d_1 = nn.Conv1d(in_channels=2, out_channels=8, kernel_size=5, stride=1, padding=2, padding_mode='zeros', dilation=1, groups=1, bias=True).cuda()
+        self.bn1 = nn.BatchNorm1d(8).cuda()
 
-        self.conv1 = nn.Conv2d(1, 64, 4, 2, 1)
+        self.Conv1d_2 = nn.Conv1d(in_channels=8, out_channels=32, kernel_size=5, stride=2, padding=0, padding_mode='zeros', dilation=1, groups=1, bias=True).cuda()
+        self.bn2 = nn.BatchNorm1d(32).cuda()
 
-        self.conv2 = nn.Conv2d(64, 128, 4, 2, 1, bias=False)
-        self.bn2 = nn.BatchNorm2d(128)
+        self.Conv1d_3 = nn.Conv1d(in_channels=32, out_channels=128, kernel_size=5, stride=2, padding=0, padding_mode='zeros', dilation=1, groups=1, bias=True).cuda()
+        self.bn3 = nn.BatchNorm1d(128).cuda()
 
-        self.conv3 = nn.Conv2d(128, 1024, 7, bias=False)
-        self.bn3 = nn.BatchNorm2d(1024)
 
     def forward(self, x):
-        x = F.leaky_relu(self.conv1(x), 0.1, inplace=True)
-        x = F.leaky_relu(self.bn2(self.conv2(x)), 0.1, inplace=True)
-        x = F.leaky_relu(self.bn3(self.conv3(x)), 0.1, inplace=True)
-
+        x = torch.transpose(x, 1, 2)
+        x = F.relu(self.bn1(self.Conv1d_1(x)))
+        x = F.relu(self.bn2(self.Conv1d_2(x)))
+        x = F.relu(self.bn3(self.Conv1d_3(x)))
+        x = torch.flatten(torch.transpose(x, 1, 2), start_dim = 1, end_dim= -1)
         return x
+
 
 class DHead(nn.Module):
     def __init__(self):
         super().__init__()
 
-        self.conv = nn.Conv2d(1024, 1, 1)
+        self.conv = nn.Conv1d(256, 1, 1)
 
     def forward(self, x):
+        x = torch.unsqueeze(x, axis=-1)
         output = torch.sigmoid(self.conv(x))
 
         return output
+
 
 class QHead(nn.Module):
     def __init__(self):
         super().__init__()
 
-        self.conv1 = nn.Conv2d(1024, 128, 1, bias=False)
-        self.bn1 = nn.BatchNorm2d(128)
+        self.conv1 = nn.Conv1d(256, 128, 1, bias=False)
+        self.bn1 = nn.BatchNorm1d(128)
 
-        self.conv_disc = nn.Conv2d(128, 10, 1)
-        self.conv_mu = nn.Conv2d(128, 2, 1)
-        self.conv_var = nn.Conv2d(128, 2, 1)
+        self.conv_disc = nn.Conv1d(128, 5, 1)
+        self.conv_mu = nn.Conv1d(128, 2, 1)
+        self.conv_var = nn.Conv1d(128, 2, 1)
 
     def forward(self, x):
+        x = torch.unsqueeze(x, axis=-1)
+
         x = F.leaky_relu(self.bn1(self.conv1(x)), 0.1, inplace=True)
 
         disc_logits = self.conv_disc(x).squeeze()
@@ -119,7 +115,7 @@ class Linear(nn.Module):
 class LinearRes(nn.Module):
     def __init__(self, n_in, n_out, norm='GN', ng=32):
         super(LinearRes, self).__init__()
-        assert(norm in ['GN', 'BN', 'SyncBN'])
+        assert (norm in ['GN', 'BN', 'SyncBN'])
 
         self.linear1 = nn.Linear(n_in, n_out, bias=False)
         self.linear2 = nn.Linear(n_out, n_out, bias=False)

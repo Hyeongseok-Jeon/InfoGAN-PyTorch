@@ -13,6 +13,16 @@ from dataloader import get_data
 from utils import *
 from config import params
 
+
+def get_n_params(model):
+    pp=0
+    for p in list(model.parameters()):
+        nn=1
+        for s in list(p.size()):
+            nn = nn*s
+        pp += nn
+    return pp
+
 if(params['dataset'] == 'MNIST'):
     from models.mnist_model import Generator, Discriminator, DHead, QHead
 elif(params['dataset'] == 'SVHN'):
@@ -63,19 +73,20 @@ elif(params['dataset'] == 'FashionMNIST'):
     params['dis_c_dim'] = 10
     params['num_con_c'] = 2
 elif(params['dataset'] == 'argoverse'):
-    params['num_z'] = 115
+    params['num_z'] = 121
     params['num_dis_c'] = 1
     params['dis_c_dim'] = 5
-    params['num_con_c'] = 8
+    params['num_con_c'] = 2
 
 # Plot the training images.
-sample_batch = next(iter(dataloader))
-plt.figure(figsize=(10, 10))
-plt.axis("off")
-plt.imshow(np.transpose(vutils.make_grid(
-    sample_batch[0].to(device)[ : 100], nrow=10, padding=2, normalize=True).cpu(), (1, 2, 0)))
-plt.savefig('Training Images {}'.format(params['dataset']))
-plt.close('all')
+if params['dataset'] != 'argoverse':
+    sample_batch = next(iter(dataloader))
+    plt.figure(figsize=(10, 10))
+    plt.axis("off")
+    plt.imshow(np.transpose(vutils.make_grid(
+        sample_batch[0].to(device)[ : 100], nrow=10, padding=2, normalize=True).cpu(), (1, 2, 0)))
+    plt.savefig('Training Images {}'.format(params['dataset']))
+    plt.close('all')
 
 # Initialise the network.
 netG = Generator().to(device)
@@ -109,7 +120,7 @@ optimG = optim.Adam([{'params': netG.parameters()}, {'params': netQ.parameters()
 z = torch.randn(100, params['num_z'], 1, 1, device=device)
 fixed_noise = z
 if(params['num_dis_c'] != 0):
-    idx = np.arange(params['dis_c_dim']).repeat(10)
+    idx = np.arange(params['dis_c_dim']).repeat(100/params['dis_c_dim'])
     dis_c = torch.zeros(100, params['num_dis_c'], params['dis_c_dim'], device=device)
     for i in range(params['num_dis_c']):
         dis_c[torch.arange(0, 100), i, idx] = 1.0
@@ -121,6 +132,9 @@ if(params['num_dis_c'] != 0):
 if(params['num_con_c'] != 0):
     con_c = torch.rand(100, params['num_con_c'], 1, 1, device=device) * 2 - 1
     fixed_noise = torch.cat((fixed_noise, con_c), dim=1)
+
+if(params['dataset'] == 'argoverse'):
+    fixed_noise = torch.squeeze(torch.squeeze(fixed_noise))
 
 real_label = 1
 fake_label = 0
@@ -160,7 +174,7 @@ for epoch in range(params['num_epochs']):
         # Fake data
         label.fill_(fake_label)
         noise, idx = noise_sample(params['num_dis_c'], params['dis_c_dim'], params['num_con_c'], params['num_z'], b_size, device)
-        fake_data = netG(noise)
+        fake_data = netG(noise[:,:,0,0])
         output2 = discriminator(fake_data.detach())
         probs_fake = netD(output2).view(-1)
         loss_fake = criterionD(probs_fake, label)
@@ -223,9 +237,25 @@ for epoch in range(params['num_epochs']):
     if((epoch+1) == 1 or (epoch+1) == params['num_epochs']/2):
         with torch.no_grad():
             gen_data = netG(fixed_noise).detach().cpu()
-        plt.figure(figsize=(10, 10))
+        for i in range(len(gen_data)):
+            if fixed_noise[i, 121] == 1:
+                plt.subplot(5, 1, 1)
+                plt.plot(gen_data[i,:,0], gen_data[i, :,1])
+            elif fixed_noise[i, 122] == 1:
+                plt.subplot(5, 1, 2)
+                plt.plot(gen_data[i, :, 0], gen_data[i, :, 1])
+            elif fixed_noise[i, 123] == 1:
+                plt.subplot(5, 1, 3)
+                plt.plot(gen_data[i, :, 0], gen_data[i, :, 1])
+            elif fixed_noise[i, 124] == 1:
+                plt.subplot(5, 1, 4)
+                plt.plot(gen_data[i, :, 0], gen_data[i, :, 1])
+            elif fixed_noise[i, 125] == 1:
+                plt.subplot(5, 1, 5)
+                plt.plot(gen_data[i, :, 0], gen_data[i, :, 1])
+            traj_tmp = gen_data[i]
+
         plt.axis("off")
-        plt.imshow(np.transpose(vutils.make_grid(gen_data, nrow=10, padding=2, normalize=True), (1,2,0)))
         plt.savefig("Epoch_%d {}".format(params['dataset']) %(epoch+1))
         plt.close('all')
 
@@ -249,10 +279,27 @@ print("-"*50)
 # Generate image to check performance of trained generator.
 with torch.no_grad():
     gen_data = netG(fixed_noise).detach().cpu()
-plt.figure(figsize=(10, 10))
+for i in range(len(gen_data)):
+    if fixed_noise[i, 121] == 1:
+        plt.subplot(5, 1, 1)
+        plt.plot(gen_data[i, :, 0], gen_data[i, :, 1])
+    elif fixed_noise[i, 122] == 1:
+        plt.subplot(5, 1, 2)
+        plt.plot(gen_data[i, :, 0], gen_data[i, :, 1])
+    elif fixed_noise[i, 123] == 1:
+        plt.subplot(5, 1, 3)
+        plt.plot(gen_data[i, :, 0], gen_data[i, :, 1])
+    elif fixed_noise[i, 124] == 1:
+        plt.subplot(5, 1, 4)
+        plt.plot(gen_data[i, :, 0], gen_data[i, :, 1])
+    elif fixed_noise[i, 125] == 1:
+        plt.subplot(5, 1, 5)
+        plt.plot(gen_data[i, :, 0], gen_data[i, :, 1])
+    traj_tmp = gen_data[i]
+
 plt.axis("off")
-plt.imshow(np.transpose(vutils.make_grid(gen_data, nrow=10, padding=2, normalize=True), (1,2,0)))
 plt.savefig("Epoch_%d_{}".format(params['dataset']) %(params['num_epochs']))
+plt.close('all')
 
 # Save network weights.
 torch.save({

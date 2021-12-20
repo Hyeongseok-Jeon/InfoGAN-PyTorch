@@ -1,6 +1,7 @@
 import torch
 import torchvision.transforms as transforms
 import torchvision.datasets as dsets
+from data.argoverse.argoverse.argodataset import ArgoDataset
 import glob
 import csv
 import pandas as pd
@@ -56,83 +57,88 @@ def get_data(dataset, batch_size):
         dataset = dsets.ImageFolder(root=root+'celeba/', transform=transform)
 
     elif dataset == 'argoverse':
-        traj_num = 0
-        data_placeholder = np.empty(shape=(2000000, 20, 2))
-        maneuver = np.empty(shape=2000000)
-        os.makedirs(root+'argoverse/argoverse/processed', exist_ok=True)
-        train_data_list = glob.glob(root+'argoverse/argoverse/raw/train/data/*.csv')
-        val_data_list = glob.glob(root+'argoverse/argoverse/raw/val/data/*.csv')
-        for ii in range(2):
-            if ii == 0:
-                data_list = train_data_list
-            else:
-                data_list = val_data_list
-            data_num = len(data_list)
-            for i in range(data_num):
-                ID_cand = []
-                data_tmp = pd.read_csv(data_list[i])
-                ts = list(data_tmp.TIMESTAMP[~data_tmp.TIMESTAMP.duplicated()])[20:40]
-                ID_cand.append(list(data_tmp.TRACK_ID[data_tmp.OBJECT_TYPE == 'AGENT'])[0])
-                ID_cand.append(list(data_tmp.TRACK_ID[data_tmp.OBJECT_TYPE == 'AV'])[0])
-                for j in range(len(ID_cand)):
-                    ID = ID_cand[j]
-                    if len(set(ts) & set(list(data_tmp.TIMESTAMP[data_tmp.TRACK_ID == ID]))) == 20:
-                        X = list(data_tmp.X[data_tmp.TRACK_ID == ID])
-                        Y = list(data_tmp.Y[data_tmp.TRACK_ID == ID])
-                        if np.sqrt((X[-1]-X[0])**2 + (Y[-1]-Y[0])**2) > 5:
-                            t = list(data_tmp.TIMESTAMP[data_tmp.TRACK_ID == ID])
-                            traj_idx = [i for i in range(len(t)) if t[i] in ts]
-                            traj_tmp = np.expand_dims(np.asarray([X[traj_idx[0]:traj_idx[-1]+1], Y[traj_idx[0]:traj_idx[-1]+1]]).T, axis=0)
-                            traj_tmp = cord_conv.preprocess(traj_tmp)
-                            traj_tmp = cord_conv.preprocess_dir(traj_tmp)[0]
+        training = torch.load(root+'argoverse/argoverse/processed/training.pt')
+        dataset = ArgoDataset(training)
 
-                            lat_pos_final = traj_tmp[-1, 1]
-                            heading_final = np.rad2deg(np.arctan2(traj_tmp[-1, 1]-traj_tmp[-5, 1], traj_tmp[-1, 0]-traj_tmp[-5, 0]))
-
-                            if heading_final > 10:
-                                maneuver_cat = 0
-                                plt.subplot(5,1,1)
-                                plt.plot(traj_tmp[:,0], traj_tmp[:,1])
-                                plt.xlim([0, 50])
-                                plt.ylim([-5, 5])
-                            elif heading_final > -10:
-                                if lat_pos_final > 1:
-                                    plt.subplot(5, 1, 2)
-                                    plt.plot(traj_tmp[:, 0], traj_tmp[:, 1])
-                                    plt.xlim([0, 50])
-                                    plt.ylim([-5, 5])
-                                    maneuver_cat = 1
-                                elif lat_pos_final > -1:
-                                    plt.subplot(5, 1, 3)
-                                    plt.plot(traj_tmp[:, 0], traj_tmp[:, 1])
-                                    plt.xlim([0, 50])
-                                    plt.ylim([-5, 5])
-                                    maneuver_cat = 2
-                                else:
-                                    plt.subplot(5, 1, 4)
-                                    plt.plot(traj_tmp[:, 0], traj_tmp[:, 1])
-                                    plt.xlim([0, 50])
-                                    plt.ylim([-5, 5])
-                                    maneuver_cat = 3
-                            else:
-                                plt.subplot(5,1,5)
-                                plt.plot(traj_tmp[:,0], traj_tmp[:,1])
-                                plt.xlim([0, 50])
-                                plt.ylim([-5, 5])
-                                maneuver_cat = 4
-
-                            data_placeholder[traj_num] = traj_tmp
-                            maneuver[traj_num] = maneuver_cat
-                            traj_num = traj_num + 1
-
-            data_placeholder = torch.Tensor(data_placeholder[:traj_num])
-            maneuver = torch.Tensor(maneuver[:traj_num])
-            processed_data = (data_placeholder, maneuver)
-            if ii == 0:
-                torch.save(processed_data, root + 'argoverse/argoverse/processed/training.pt')
-            else:
-                torch.save(processed_data, root + 'argoverse/argoverse/processed/training.pt')
+        # os.makedirs(root+'argoverse/argoverse/processed', exist_ok=True)
+        # train_data_list = glob.glob(root+'argoverse/argoverse/raw/train/data/*.csv')
+        # val_data_list = glob.glob(root+'argoverse/argoverse/raw/val/data/*.csv')
+        # for ii in range(2):
+        #     if ii == 0:
+        #         data_list = train_data_list
+        #     else:
+        #         data_list = val_data_list
+        #     data_num = len(data_list)
+        #     traj_num = 0
+        #     data_placeholder = np.empty(shape=(2000000, 20, 2))
+        #     maneuver = np.empty(shape=2000000)
+        #     for i in range(data_num):
+        #         print(i)
+        #         ID_cand = []
+        #         data_tmp = pd.read_csv(data_list[i])
+        #         ts = list(data_tmp.TIMESTAMP[~data_tmp.TIMESTAMP.duplicated()])[20:40]
+        #         ID_cand.append(list(data_tmp.TRACK_ID[data_tmp.OBJECT_TYPE == 'AGENT'])[0])
+        #         ID_cand.append(list(data_tmp.TRACK_ID[data_tmp.OBJECT_TYPE == 'AV'])[0])
+        #         for j in range(len(ID_cand)):
+        #             ID = ID_cand[j]
+        #             if len(set(ts) & set(list(data_tmp.TIMESTAMP[data_tmp.TRACK_ID == ID]))) == 20:
+        #                 X = list(data_tmp.X[data_tmp.TRACK_ID == ID])
+        #                 Y = list(data_tmp.Y[data_tmp.TRACK_ID == ID])
+        #                 if np.sqrt((X[-1]-X[0])**2 + (Y[-1]-Y[0])**2) > 5:
+        #                     t = list(data_tmp.TIMESTAMP[data_tmp.TRACK_ID == ID])
+        #                     traj_idx = [i for i in range(len(t)) if t[i] in ts]
+        #                     traj_tmp = np.expand_dims(np.asarray([X[traj_idx[0]:traj_idx[-1]+1], Y[traj_idx[0]:traj_idx[-1]+1]]).T, axis=0)
+        #                     traj_tmp = cord_conv.preprocess(traj_tmp)
+        #                     traj_tmp = cord_conv.preprocess_dir(traj_tmp)[0]
+        #
+        #                     lat_pos_final = traj_tmp[-1, 1]
+        #                     heading_final = np.rad2deg(np.arctan2(traj_tmp[-1, 1]-traj_tmp[-5, 1], traj_tmp[-1, 0]-traj_tmp[-5, 0]))
+        #
+        #                     if heading_final > 10:
+        #                         maneuver_cat = 0
+        #                         plt.subplot(5,1,1)
+        #                         plt.plot(traj_tmp[:,0], traj_tmp[:,1])
+        #                         plt.xlim([0, 50])
+        #                         plt.ylim([-5, 5])
+        #                     elif heading_final > -10:
+        #                         if lat_pos_final > 1:
+        #                             plt.subplot(5, 1, 2)
+        #                             plt.plot(traj_tmp[:, 0], traj_tmp[:, 1])
+        #                             plt.xlim([0, 50])
+        #                             plt.ylim([-5, 5])
+        #                             maneuver_cat = 1
+        #                         elif lat_pos_final > -1:
+        #                             plt.subplot(5, 1, 3)
+        #                             plt.plot(traj_tmp[:, 0], traj_tmp[:, 1])
+        #                             plt.xlim([0, 50])
+        #                             plt.ylim([-5, 5])
+        #                             maneuver_cat = 2
+        #                         else:
+        #                             plt.subplot(5, 1, 4)
+        #                             plt.plot(traj_tmp[:, 0], traj_tmp[:, 1])
+        #                             plt.xlim([0, 50])
+        #                             plt.ylim([-5, 5])
+        #                             maneuver_cat = 3
+        #                     else:
+        #                         plt.subplot(5,1,5)
+        #                         plt.plot(traj_tmp[:,0], traj_tmp[:,1])
+        #                         plt.xlim([0, 50])
+        #                         plt.ylim([-5, 5])
+        #                         maneuver_cat = 4
+        #
+        #                     data_placeholder[traj_num] = traj_tmp
+        #                     maneuver[traj_num] = maneuver_cat
+        #                     traj_num = traj_num + 1
+        #
+        #     data_placeholder = torch.Tensor(data_placeholder[:traj_num])
+        #     maneuver = torch.Tensor(maneuver[:traj_num])
+        #     processed_data = (data_placeholder, maneuver)
+        #     if ii == 0:
+        #         torch.save(processed_data, root + 'argoverse/argoverse/processed/training.pt')
+        #     else:
+        #         torch.save(processed_data, root + 'argoverse/argoverse/processed/validation.pt')
     # Create dataloader.
+
     dataloader = torch.utils.data.DataLoader(dataset,
                                             batch_size=batch_size,
                                             shuffle=True)
