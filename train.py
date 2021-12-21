@@ -133,8 +133,8 @@ criterionQ_dis = nn.CrossEntropyLoss()
 criterionQ_con = NormalNLLLoss()
 
 # Adam optimiser is used.
-optimD = optim.Adam([{'params': discriminator.parameters()}, {'params': netD.parameters()}], lr=params['learning_rate'], betas=(params['beta1'], params['beta2']))
-optimG = optim.Adam([{'params': netG.parameters()}, {'params': netQ.parameters()}], lr=params['learning_rate'], betas=(params['beta1'], params['beta2']))
+optimD = optim.Adam([{'params': discriminator.parameters()}, {'params': netD.parameters()}], lr=params['learning_rate_D'], betas=(params['beta1'], params['beta2']))
+optimG = optim.Adam([{'params': netG.parameters()}, {'params': netQ.parameters()}], lr=params['learning_rate_G'], betas=(params['beta1'], params['beta2']))
 
 # Fixed Noise
 z = torch.randn(100, params['num_z'], 1, 1, device=device)
