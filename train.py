@@ -264,7 +264,7 @@ for epoch in range(params['num_epochs']):
 
     # Generate image to check performance of generator.
 
-    if((epoch+1) == 1 or (epoch+1) == params['num_epochs']/2):
+    if((epoch+1) == 1 or (epoch+1) % params['save_epoch'] == 0):
         with torch.no_grad():
             gen_data = netG(fixed_noise).detach().cpu()
         gen_data = displacement_to_traj(gen_data)
