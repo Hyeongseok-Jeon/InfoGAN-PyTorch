@@ -68,7 +68,7 @@ class Discriminator(nn.Module):
         self.bn3 = nn.BatchNorm1d(128)
 
         #input : (batch_num, 128, 2)
-        self.Conv1d_4 = nn.Conv1d(in_channels=128, out_channels=128, kernel_size=4, stride=1, padding=1, padding_mode='zeros', dilation=1, groups=1, bias=True)
+        self.Conv1d_4 = nn.Conv1d(in_channels=128, out_channels=256, kernel_size=4, stride=1, padding=1, padding_mode='zeros', dilation=1, groups=1, bias=True)
         self.bn4 = nn.BatchNorm1d(256)
 
 
@@ -99,7 +99,7 @@ class QHead(nn.Module):
     def __init__(self):
         super().__init__()
 
-        self.conv1 = nn.Conv1d(128, 128, 1, bias=False)
+        self.conv1 = nn.Conv1d(256, 128, 1, bias=False)
         self.bn1 = nn.BatchNorm1d(128)
 
         self.conv_disc = nn.Conv1d(128, 5, 1)
