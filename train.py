@@ -264,21 +264,30 @@ for epoch in range(params['num_epochs']):
             if fixed_noise[i, 121] == 1:
                 plt.subplot(5, 1, 1)
                 plt.plot(gen_data[i,:,0], gen_data[i, :,1])
+                plt.xlim([0, 50])
+                plt.ylim([-5, 5])
             elif fixed_noise[i, 122] == 1:
                 plt.subplot(5, 1, 2)
                 plt.plot(gen_data[i, :, 0], gen_data[i, :, 1])
+                plt.xlim([0, 50])
+                plt.ylim([-5, 5])
             elif fixed_noise[i, 123] == 1:
                 plt.subplot(5, 1, 3)
                 plt.plot(gen_data[i, :, 0], gen_data[i, :, 1])
+                plt.xlim([0, 50])
+                plt.ylim([-5, 5])
             elif fixed_noise[i, 124] == 1:
                 plt.subplot(5, 1, 4)
                 plt.plot(gen_data[i, :, 0], gen_data[i, :, 1])
+                plt.xlim([0, 50])
+                plt.ylim([-5, 5])
             elif fixed_noise[i, 125] == 1:
                 plt.subplot(5, 1, 5)
                 plt.plot(gen_data[i, :, 0], gen_data[i, :, 1])
+                plt.xlim([0, 50])
+                plt.ylim([-5, 5])
             traj_tmp = gen_data[i]
 
-        plt.axis("off")
         plt.savefig("1_Epoch_%d {}".format(params['dataset']) %(epoch+1))
         plt.close('all')
 
