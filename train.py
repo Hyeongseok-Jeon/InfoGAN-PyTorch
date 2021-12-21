@@ -23,6 +23,7 @@ args = parser.parse_args()
 
 CUDA_VISIBLE_DEVICES=args.GPU
 print(args.GPU)
+cuda = 'cuda:' + args.GPU
 def get_n_params(model):
     pp=0
     for p in list(model.parameters()):
@@ -50,7 +51,7 @@ torch.manual_seed(seed)
 print("Random Seed: ", seed)
 
 # Use GPU if available.
-device = torch.device("cuda:0" if(torch.cuda.is_available()) else "cpu")
+device = torch.device(cuda if(torch.cuda.is_available()) else "cpu")
 print(device, " will be used.\n")
 
 dataloader = get_data(params['dataset'], params['batch_size'])
