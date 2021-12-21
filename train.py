@@ -140,7 +140,7 @@ if(params['num_con_c'] != 0):
     fixed_noise = torch.cat((fixed_noise, con_c), dim=1)
 
 if(params['dataset'] == 'argoverse'):
-    fixed_noise = torch.squeeze(torch.squeeze(fixed_noise))
+    fixed_noise = torch.squeeze(fixed_noise)
 
 real_label = 1
 fake_label = 0
