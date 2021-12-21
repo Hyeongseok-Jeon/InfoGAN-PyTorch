@@ -3,17 +3,26 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision.utils as vutils
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import time
 import random
+import argparse
 
 from models.mnist_model import Generator, Discriminator, DHead, QHead
 from dataloader import get_data
 from utils import *
 from config import params
 
+matplotlib.use('Agg')
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--GPU', type=int, required=True)
+args = parser.parse_args()
+
+CUDA_VISIBLE_DEVICES=args.GPU
+print(args.GPU)
 def get_n_params(model):
     pp=0
     for p in list(model.parameters()):
@@ -234,7 +243,7 @@ for epoch in range(params['num_epochs']):
     img_list.append(vutils.make_grid(gen_data, nrow=10, padding=2, normalize=True))
 
     # Generate image to check performance of generator.
-    '''
+
     if((epoch+1) == 1 or (epoch+1) == params['num_epochs']/2):
         with torch.no_grad():
             gen_data = netG(fixed_noise).detach().cpu()
@@ -259,7 +268,7 @@ for epoch in range(params['num_epochs']):
         plt.axis("off")
         plt.savefig("Epoch_%d {}".format(params['dataset']) %(epoch+1))
         plt.close('all')
-    '''
+
     # Save network weights.
     if (epoch+1) % params['save_epoch'] == 0:
         torch.save({
@@ -276,7 +285,7 @@ training_time = time.time() - start_time
 print("-"*50)
 print('Training finished!\nTotal Time for Training: %.2fm' %(training_time / 60))
 print("-"*50)
-'''
+
 # Generate image to check performance of trained generator.
 with torch.no_grad():
     gen_data = netG(fixed_noise).detach().cpu()
@@ -301,7 +310,7 @@ for i in range(len(gen_data)):
 plt.axis("off")
 plt.savefig("Epoch_%d_{}".format(params['dataset']) %(params['num_epochs']))
 plt.close('all')
-'''
+
 # Save network weights.
 torch.save({
     'netG' : netG.state_dict(),
@@ -325,11 +334,10 @@ plt.legend()
 plt.savefig("Loss Curve {}".format(params['dataset']))
 
 # Animation showing the improvements of the generator.
-'''
+
 fig = plt.figure(figsize=(10,10))
 plt.axis("off")
 ims = [[plt.imshow(np.transpose(i,(1,2,0)), animated=True)] for i in img_list]
 anim = animation.ArtistAnimation(fig, ims, interval=1000, repeat_delay=1000, blit=True)
 anim.save('infoGAN_{}.gif'.format(params['dataset']), dpi=80, writer='imagemagick')
 plt.show()
-'''
