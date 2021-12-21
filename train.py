@@ -139,8 +139,8 @@ if(params['num_con_c'] != 0):
     con_c = torch.rand(100, params['num_con_c'], 1, 1, device=device) * 2 - 1
     fixed_noise = torch.cat((fixed_noise, con_c), dim=1)
 
-# if(params['dataset'] == 'argoverse'):
-#     fixed_noise = torch.squeeze(fixed_noise)
+if(params['dataset'] == 'argoverse'):
+    fixed_noise = torch.squeeze(fixed_noise, dim=-1)
 
 real_label = 1
 fake_label = 0
