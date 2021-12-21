@@ -205,11 +205,14 @@ for epoch in range(params['num_epochs']):
         # Net Loss for the discriminator
         D_loss = loss_real + loss_fake
         # Update parameters
+        '''
         if step_D_sig == 1:
             optimD.step()
             step_D_sig = 0
         else:
             step_D_sig = 1
+        '''
+        optimD.step()
         # Updating Generator and QHead
         optimG.zero_grad()
 
@@ -305,7 +308,7 @@ for epoch in range(params['num_epochs']):
             'optimD' : optimD.state_dict(),
             'optimG' : optimG.state_dict(),
             'params' : params
-            }, 'checkpoint/model_epoch_%d_{}'.format(params['dataset']) %(epoch+1))
+            }, 'checkpoint/'+str(args.GPU)+'_model_epoch_%d_{}'.format(params['dataset']) %(epoch+1))
 
 training_time = time.time() - start_time
 print("-"*50)
@@ -335,7 +338,7 @@ for i in range(len(gen_data)):
     traj_tmp = gen_data[i]
 
 plt.axis("off")
-plt.savefig("Epoch_%d_{}".format(params['dataset']) %(params['num_epochs']))
+plt.savefig(str(args.GPU)+"_Epoch_%d_{}".format(params['dataset']) %(params['num_epochs']))
 plt.close('all')
 
 # Save network weights.
@@ -347,7 +350,7 @@ torch.save({
     'optimD' : optimD.state_dict(),
     'optimG' : optimG.state_dict(),
     'params' : params
-    }, 'checkpoint/model_final_{}'.format(params['dataset']))
+    }, 'checkpoint/'+str(args.GPU)+'_model_final_{}'.format(params['dataset']))
 
 
 # Plot the training losses.
@@ -358,7 +361,7 @@ plt.plot(D_losses,label="D")
 plt.xlabel("iterations")
 plt.ylabel("Loss")
 plt.legend()
-plt.savefig("Loss Curve {}".format(params['dataset']))
+plt.savefig(str(args.GPU)+"_Loss Curve {}".format(params['dataset']))
 
 # Animation showing the improvements of the generator.
 '''
