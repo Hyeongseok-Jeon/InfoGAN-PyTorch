@@ -260,6 +260,7 @@ for epoch in range(params['num_epochs']):
     if((epoch+1) == 1 or (epoch+1) == params['num_epochs']/2):
         with torch.no_grad():
             gen_data = netG(fixed_noise).detach().cpu()
+        gen_data = displacement_to_traj(gen_data)
         for i in range(len(gen_data)):
             if fixed_noise[i, 121] == 1:
                 plt.subplot(5, 1, 1)
@@ -288,7 +289,7 @@ for epoch in range(params['num_epochs']):
                 plt.ylim([-5, 5])
             traj_tmp = gen_data[i]
 
-        plt.savefig("1_Epoch_%d {}".format(params['dataset']) %(epoch+1))
+        plt.savefig(str(args.GPU) + "_Epoch_%d {}".format(params['dataset']) %(epoch+1))
         plt.close('all')
 
     # Save network weights.
@@ -357,10 +358,11 @@ plt.legend()
 plt.savefig("Loss Curve {}".format(params['dataset']))
 
 # Animation showing the improvements of the generator.
-
+'''
 fig = plt.figure(figsize=(10,10))
 plt.axis("off")
 ims = [[plt.imshow(np.transpose(i,(1,2,0)), animated=True)] for i in img_list]
 anim = animation.ArtistAnimation(fig, ims, interval=1000, repeat_delay=1000, blit=True)
 anim.save('infoGAN_{}.gif'.format(params['dataset']), dpi=80, writer='imagemagick')
 plt.show()
+'''
