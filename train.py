@@ -279,7 +279,7 @@ for epoch in range(params['num_epochs']):
             traj_tmp = gen_data[i]
 
         plt.axis("off")
-        plt.savefig("Epoch_%d {}".format(params['dataset']) %(epoch+1))
+        plt.savefig("1_Epoch_%d {}".format(params['dataset']) %(epoch+1))
         plt.close('all')
 
     # Save network weights.
