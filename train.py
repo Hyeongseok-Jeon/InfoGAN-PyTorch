@@ -20,9 +20,6 @@ matplotlib.use('Agg')
 parser = argparse.ArgumentParser()
 parser.add_argument('--GPU', type=int, required=True)
 args = parser.parse_args()
-
-CUDA_VISIBLE_DEVICES=args.GPU
-print(args.GPU)
 cuda = 'cuda:' + str(args.GPU)
 def get_n_params(model):
     pp=0
