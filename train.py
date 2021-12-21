@@ -206,11 +206,15 @@ for epoch in range(params['num_epochs']):
         D_loss = loss_real + loss_fake
         # Update parameters
 
-        if step_D_sig == 1:
+        if step_D_sig == 0:
             optimD.step()
-            step_D_sig = 0
+            step_D_sig = step_D_sig + 1
         else:
-            step_D_sig = 1
+            if step_D_sig == 3:
+                step_D_sig = 0
+            else:
+                step_D_sig = step_D_sig + 1
+
 
         # optimD.step()
 
