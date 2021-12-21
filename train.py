@@ -20,6 +20,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--GPU', type=int, required=True)
 args = parser.parse_args()
 cuda = 'cuda:' + str(args.GPU)
+
 def get_n_params(model):
     pp=0
     for p in list(model.parameters()):
@@ -28,6 +29,19 @@ def get_n_params(model):
             nn = nn*s
         pp += nn
     return pp
+
+def traj_to_displacement(data):
+    new_data = torch.cat((data[:,:1,:], data[:,1:,:] - data[:,:19,:]), dim=1)/3
+    return new_data
+
+def displacement_to_traj(new_data):
+    original_data = torch.zeros_like(new_data)
+    for i in range(20):
+        if i == 0:
+            original_data[:,i] = new_data[:,i]
+        else:
+            original_data[:,i] = original_data[:,i-1] + (new_data[:,i] * 3)
+    return original_data
 
 if(params['dataset'] == 'MNIST'):
     from models.mnist_model import Generator, Discriminator, DHead, QHead
@@ -165,6 +179,7 @@ for epoch in range(params['num_epochs']):
         # Get batch size
         b_size = data.size(0)
         # Transfer data tensor to GPU/CPU (device)
+        data = traj_to_displacement(data)
         real_data = data.to(device)
 
         # Updating discriminator and DHead
@@ -237,6 +252,7 @@ for epoch in range(params['num_epochs']):
     # Generate image after each epoch to check performance of the generator. Used for creating animated gif later.
     with torch.no_grad():
         gen_data = netG(fixed_noise).detach().cpu()
+    gen_data = displacement_to_traj(gen_data)
     img_list.append(vutils.make_grid(gen_data, nrow=10, padding=2, normalize=True))
 
     # Generate image to check performance of generator.
@@ -286,6 +302,7 @@ print("-"*50)
 # Generate image to check performance of trained generator.
 with torch.no_grad():
     gen_data = netG(fixed_noise).detach().cpu()
+gen_data = displacement_to_traj(gen_data)
 for i in range(len(gen_data)):
     if fixed_noise[i, 121] == 1:
         plt.subplot(5, 1, 1)
