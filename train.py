@@ -205,14 +205,15 @@ for epoch in range(params['num_epochs']):
         # Net Loss for the discriminator
         D_loss = loss_real + loss_fake
         # Update parameters
-        '''
+
         if step_D_sig == 1:
             optimD.step()
             step_D_sig = 0
         else:
             step_D_sig = 1
-        '''
-        optimD.step()
+        
+        # optimD.step()
+
         # Updating Generator and QHead
         optimG.zero_grad()
 
