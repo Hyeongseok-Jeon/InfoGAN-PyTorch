@@ -20,7 +20,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--GPU', type=int, required=True)
 args = parser.parse_args()
 cuda = 'cuda:' + str(args.GPU)
-
+args.GPU = args.GPU + 4
 def get_n_params(model):
     pp=0
     for p in list(model.parameters()):
@@ -211,7 +211,7 @@ for epoch in range(params['num_epochs']):
             step_D_sig = 0
         else:
             step_D_sig = 1
-        
+
         # optimD.step()
 
         # Updating Generator and QHead
