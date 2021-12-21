@@ -9,8 +9,7 @@ import matplotlib.animation as animation
 import time
 import random
 import argparse
-
-from models.mnist_model import Generator, Discriminator, DHead, QHead
+import sys
 from dataloader import get_data
 from utils import *
 from config import params
@@ -181,7 +180,7 @@ for epoch in range(params['num_epochs']):
         # Fake data
         label.fill_(fake_label)
         noise, idx = noise_sample(params['num_dis_c'], params['dis_c_dim'], params['num_con_c'], params['num_z'], b_size, device)
-        fake_data = netG(noise[:,:,0,0])
+        fake_data = netG(noise[:,:,:,0])
         output2 = discriminator(fake_data.detach())
         probs_fake = netD(output2).view(-1)
         loss_fake = criterionD(probs_fake, label)

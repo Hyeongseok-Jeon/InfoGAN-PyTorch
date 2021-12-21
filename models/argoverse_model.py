@@ -12,6 +12,7 @@ Architecture based on InfoGAN paper.
 class Generator(nn.Module):
     def __init__(self):
         super(Generator, self).__init__()
+        '''
         norm = "GN"
         ng = 1
 
@@ -19,33 +20,64 @@ class Generator(nn.Module):
 
         self.linear_res = LinearRes(n_actor, n_actor, norm=norm, ng=ng)
         self.linear = nn.Linear(n_actor, 2 * 20)
+        '''
+        #input : (batch_num, 128, 1)
+        self.conv1_1 = nn.ConvTranspose1d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1)
+        self.conv1_2 = nn.ConvTranspose1d(in_channels=128, out_channels=128, kernel_size=5, stride=1, padding=2)
+        self.bn1 = nn.BatchNorm1d(128)
+
+        self.conv2 = nn.ConvTranspose1d(in_channels=128, out_channels=32, kernel_size=4, stride=1, padding=0)
+        self.bn2 = nn.BatchNorm1d(32)
+        #input : (batch_num, 32, 4)
+
+        self.conv3 = nn.ConvTranspose1d(in_channels=32, out_channels=8, kernel_size=4, stride=4, padding=0)
+        self.bn3 = nn.BatchNorm1d(8)
+        #input : (batch_num, 8, 16)
+
+        self.conv4 = nn.ConvTranspose1d(in_channels=8, out_channels=2, kernel_size=8, stride=2, padding=2)
+        self.bn4 = nn.BatchNorm1d(2)
+        #input : (batch_num, 2, 34)
+        self.conv5 = nn.ConvTranspose1d(in_channels=2, out_channels=1, kernel_size=9, stride=1, padding=1)
+        #input : (batch_num, 1, 40)
 
 
     def forward(self, x):
-        x = self.linear_res(x)
-        x = self.linear(x)
-        traj = x.view(-1, 20, 2)
+        x = F.relu(self.conv1_1(x))
+        x = F.relu(self.bn1(self.conv1_2(x)))
+        x = F.relu(self.bn2(self.conv2(x)))
+        x = F.relu(self.bn3(self.conv3(x)))
+        x = F.relu(self.bn4(self.conv4(x)))
+        x = torch.tanh(self.conv5(x))
+        traj = torch.transpose(torch.cat((x[:,:,:20], x[:,:,20:]),dim=1), 1, 2)
         return traj
 
 
 class Discriminator(nn.Module):
     def __init__(self):
         super().__init__()
-        self.Conv1d_1 = nn.Conv1d(in_channels=2, out_channels=8, kernel_size=5, stride=1, padding=2, padding_mode='zeros', dilation=1, groups=1, bias=True).cuda()
-        self.bn1 = nn.BatchNorm1d(8).cuda()
+        #input : (batch_num, 2, 20)
+        self.Conv1d_1 = nn.Conv1d(in_channels=2, out_channels=8, kernel_size=5, stride=1, padding=2, padding_mode='zeros', dilation=1, groups=1, bias=True)
+        self.bn1 = nn.BatchNorm1d(8)
 
-        self.Conv1d_2 = nn.Conv1d(in_channels=8, out_channels=32, kernel_size=5, stride=2, padding=0, padding_mode='zeros', dilation=1, groups=1, bias=True).cuda()
-        self.bn2 = nn.BatchNorm1d(32).cuda()
+        #input : (batch_num, 8, 20)
+        self.Conv1d_2 = nn.Conv1d(in_channels=8, out_channels=32, kernel_size=5, stride=2, padding=0, padding_mode='zeros', dilation=1, groups=1, bias=True)
+        self.bn2 = nn.BatchNorm1d(32)
 
-        self.Conv1d_3 = nn.Conv1d(in_channels=32, out_channels=128, kernel_size=5, stride=2, padding=0, padding_mode='zeros', dilation=1, groups=1, bias=True).cuda()
-        self.bn3 = nn.BatchNorm1d(128).cuda()
+        #input : (batch_num, 32, 8)
+        self.Conv1d_3 = nn.Conv1d(in_channels=32, out_channels=128, kernel_size=5, stride=2, padding=0, padding_mode='zeros', dilation=1, groups=1, bias=True)
+        self.bn3 = nn.BatchNorm1d(128)
+
+        #input : (batch_num, 128, 2)
+        self.Conv1d_4 = nn.Conv1d(in_channels=128, out_channels=256, kernel_size=4, stride=1, padding=1, padding_mode='zeros', dilation=1, groups=1, bias=True)
+        self.bn4 = nn.BatchNorm1d(256)
 
 
     def forward(self, x):
         x = torch.transpose(x, 1, 2)
-        x = F.relu(self.bn1(self.Conv1d_1(x)))
-        x = F.relu(self.bn2(self.Conv1d_2(x)))
-        x = F.relu(self.bn3(self.Conv1d_3(x)))
+        x = F.leaky_relu(self.bn1(self.Conv1d_1(x)))
+        x = F.leaky_relu(self.bn2(self.Conv1d_2(x)))
+        x = F.leaky_relu(self.bn3(self.Conv1d_3(x)))
+        x = F.leaky_relu(self.bn4(self.Conv1d_4(x)))
         x = torch.flatten(torch.transpose(x, 1, 2), start_dim = 1, end_dim= -1)
         return x
 

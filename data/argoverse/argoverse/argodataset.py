@@ -1,13 +1,5 @@
-import numpy as np
-import torch
-from torch.utils.data import Dataset
-from scipy import sparse
-import os
-import copy
-from argoverse.data_loading.argoverse_forecasting_loader import ArgoverseForecastingLoader
-from argoverse.map_representation.map_api import ArgoverseMap
-from skimage.transform import rotate
 
+from torch.utils.data import Dataset
 
 
 class ArgoDataset(Dataset):
