@@ -1,0 +1,6 @@
+0_ : learning rate_D = learning_rate_G 
+1_ : learning rate_D*2 = learning_rate_G
+2_ : 0_ + update period of D * 2 = updata period of G
+3_ : learning rate_D*4 = learning_rate_G + update period of D * 2 = updata period of G
+4_ : learning rate_D*8 = learning_rate_G + update period of D * 2 = updata period of G
+5_ : learning rate_D*4 = learning_rate_G + update period of D * 4 = updata period of G
